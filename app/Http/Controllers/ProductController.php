@@ -3,18 +3,19 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
-
+    private $file = 'products.json';
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-
-        return view('product');
+        $products = $this->getProducts();
+        return view('product', compact('products'));
     }
 
     /**
@@ -30,7 +31,33 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        try {
+            $products = $this->getProducts();
+
+            $newProduct = [
+                'product_name' => $request->product_name,
+                'quantity' => (int)$request->quantity,
+                'price' => (float)$request->price,
+                'datetime' => now()->toDateTimeString(),
+                'total_value' => (float)$request->quantity * (float)$request->price,
+            ];
+
+            $products[] = $newProduct;
+            Storage::put($this->file, json_encode($products, JSON_PRETTY_PRINT));
+
+            return response()->json(['products' => $products], 200);
+        } catch (\Throwable $th) {
+
+            Log::error('Failed to store product.', [
+                'error'   => $th->getMessage(),
+                'trace'   => $th->getTraceAsString(),
+                'payload' => $request->all(),
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to store product.',
+            ], 500);
+        }
     }
 
     /**
@@ -52,9 +79,33 @@ class ProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request)
     {
-        //
+        try {
+
+            $products = $this->getProducts();
+            $index = $request->index;
+
+            $products[$index]['product_name'] = $request->product_name;
+            $products[$index]['quantity'] = (int)$request->quantity;
+            $products[$index]['price'] = (float)$request->price;
+            $products[$index]['total_value'] = (float)$request->quantity * (float)$request->price;
+
+            Storage::put($this->file, json_encode($products, JSON_PRETTY_PRINT));
+
+            return response()->json(['products' => $products], 200);
+        } catch (\Throwable $th) {
+
+            Log::error('Failed to update product.', [
+                'error'   => $th->getMessage(),
+                'trace'   => $th->getTraceAsString(),
+                'payload' => $request->all(),
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to update product.',
+            ], 500);
+        }
     }
 
     /**
@@ -65,4 +116,13 @@ class ProductController extends Controller
         //
     }
 
+    private function getProducts()
+    {
+
+        if (!Storage::exists($this->file)) {
+            Storage::put($this->file, json_encode([]));
+        }
+
+        return json_decode(Storage::get($this->file), true);
+    }
 }
