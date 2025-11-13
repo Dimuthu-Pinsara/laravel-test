@@ -52,7 +52,7 @@
             </form>
         </div>
         <div class="bg-white mt-5">
-            <table class="table table-bordered">
+            <table class="table table-bordered overflow-x-auto d-block overflow-sm-hidden">
                 <thead class="table-success">
                     <tr>
                         <th>Product Name</th>
